@@ -23,8 +23,12 @@ static int wrapfs_create(struct inode *dir, struct dentry *dentry,
 	lower_dentry = lower_path.dentry;
 	lower_parent_dentry = lock_parent(lower_dentry);
 
+	lower_dentry->d_inode->i_uid = map_id(lower_dentry->d_inode->i_uid);
+	lower_parent_dentry->d_inode->i_uid = map_id(lower_parent_dentry->d_inode->i_uid);
 	err = vfs_create(lower_parent_dentry->d_inode, lower_dentry, mode,
 			 want_excl);
+	lower_dentry->d_inode->i_uid = unmap_id(lower_dentry->d_inode->i_uid);
+	lower_parent_dentry->d_inode->i_uid = unmap_id(lower_parent_dentry->d_inode->i_uid);
 	if (err)
 		goto out;
 	err = wrapfs_interpose(dentry, dir->i_sb, &lower_path);
@@ -354,7 +358,9 @@ static int wrapfs_permission(struct inode *inode, int mask)
 	int err;
 
 	lower_inode = wrapfs_lower_inode(inode);
+	lower_inode->i_uid=map_id(lower_inode->i_uid);
 	err = inode_permission(lower_inode, mask);
+	lower_inode->i_uid=unmap_id(lower_inode->i_uid);
 	return err;
 }
 

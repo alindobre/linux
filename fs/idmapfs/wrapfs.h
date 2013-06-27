@@ -60,6 +60,10 @@ extern struct inode *wrapfs_iget(struct super_block *sb,
 extern int wrapfs_interpose(struct dentry *dentry, struct super_block *sb,
 			    struct path *lower_path);
 
+/* UID/GID mapping */
+int map_id(int id);
+int unmap_id(int id);
+
 /* file private data */
 struct wrapfs_file_info {
 	struct file *lower_file;
@@ -92,7 +96,10 @@ struct wrapfs_sb_info {
  */
 static inline struct wrapfs_inode_info *WRAPFS_I(const struct inode *inode)
 {
-	return container_of(inode, struct wrapfs_inode_info, vfs_inode);
+	struct wrapfs_inode_info *i;
+	i = container_of(inode, struct wrapfs_inode_info, vfs_inode);
+	i->vfs_inode.i_uid = map_id(i->vfs_inode.i_uid);
+	return i;
 }
 
 /* dentry to private data */

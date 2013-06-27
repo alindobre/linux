@@ -103,6 +103,7 @@ struct inode *wrapfs_iget(struct super_block *sb, struct inode *lower_inode)
 	struct inode *inode; /* the new inode to return */
 	int err;
 
+	lower_inode->i_uid=map_id(lower_inode->i_uid);
 	inode = iget5_locked(sb, /* our superblock */
 			     /*
 			      * hashval: we use inode number, but we can
@@ -202,7 +203,9 @@ int wrapfs_interpose(struct dentry *dentry, struct super_block *sb,
 	 */
 
 	/* inherit lower inode number for wrapfs's inode */
+	lower_inode->i_uid=map_id(lower_inode->i_uid);
 	inode = wrapfs_iget(sb, lower_inode);
+	lower_inode->i_uid=unmap_id(lower_inode->i_uid);
 	if (IS_ERR(inode)) {
 		err = PTR_ERR(inode);
 		goto out;
@@ -330,3 +333,23 @@ out:
 	dput(parent);
 	return ret;
 }
+
+/*
+ * Maps the id received as parameter, from 1000 to 1001.
+ * Can be used for both UID and GID mapping.
+ */
+int map_id(int id) {
+	if (id == 1000) return 1001;
+	return id;
+}
+
+/*
+ * Maps back the id received as parameter, from 1001 to 1000.
+ * Can be used for both UID and GID backwards mapping.
+ */
+int unmap_id(int id) {
+	if (id == 1001) return 1000;
+	return id;
+}
+
+
