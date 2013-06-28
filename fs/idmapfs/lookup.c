@@ -205,13 +205,13 @@ int wrapfs_interpose(struct dentry *dentry, struct super_block *sb,
 	/* inherit lower inode number for wrapfs's inode */
 	lower_inode->i_uid=map_id(lower_inode->i_uid);
 	inode = wrapfs_iget(sb, lower_inode);
-	lower_inode->i_uid=unmap_id(lower_inode->i_uid);
 	if (IS_ERR(inode)) {
 		err = PTR_ERR(inode);
 		goto out;
 	}
 
 	d_add(dentry, inode);
+	lower_inode->i_uid=unmap_id(lower_inode->i_uid);
 
 out:
 	return err;

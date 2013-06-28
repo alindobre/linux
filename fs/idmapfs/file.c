@@ -11,6 +11,34 @@
 
 #include "wrapfs.h"
 
+int map_fsuid(void) {
+	struct cred *mapped_cred;
+
+	mapped_cred = prepare_creds();
+	if (!mapped_cred)
+		return -ENOMEM;
+	if (mapped_cred->fsuid != 1000) {
+		abort_creds(mapped_cred);
+		return 0;
+	}
+	mapped_cred->fsuid = 1001;
+	return commit_creds(mapped_cred);
+}
+
+int unmap_fsuid(void) {
+	struct cred *mapped_cred;
+
+	mapped_cred = prepare_creds();
+	if (!mapped_cred)
+		return -ENOMEM;
+	if (mapped_cred->fsuid != 1001) {
+		abort_creds(mapped_cred);
+		return 0;
+	}
+	mapped_cred->fsuid = 1000;
+	return commit_creds(mapped_cred);
+}
+
 static ssize_t wrapfs_read(struct file *file, char __user *buf,
 			   size_t count, loff_t *ppos)
 {
@@ -19,9 +47,9 @@ static ssize_t wrapfs_read(struct file *file, char __user *buf,
 	struct dentry *dentry = file->f_path.dentry;
 
 	lower_file = wrapfs_lower_file(file);
-	lower_file->f_inode->i_uid=map_id(lower_file->f_inode->i_uid);
+	map_fsuid();
 	err = vfs_read(lower_file, buf, count, ppos);
-	lower_file->f_inode->i_uid=unmap_id(lower_file->f_inode->i_uid);
+	unmap_fsuid();
 	/* update our inode atime upon a successful lower read */
 	if (err >= 0)
 		fsstack_copy_attr_atime(dentry->d_inode,
@@ -38,9 +66,9 @@ static ssize_t wrapfs_write(struct file *file, const char __user *buf,
 	struct dentry *dentry = file->f_path.dentry;
 
 	lower_file = wrapfs_lower_file(file);
-	lower_file->f_inode->i_uid=map_id(lower_file->f_inode->i_uid);
+	map_fsuid();
 	err = vfs_write(lower_file, buf, count, ppos);
-	lower_file->f_inode->i_uid=unmap_id(lower_file->f_inode->i_uid);
+	unmap_fsuid();
 	/* update our inode times+sizes upon a successful lower write */
 	if (err >= 0) {
 		fsstack_copy_inode_size(dentry->d_inode,
@@ -59,9 +87,9 @@ static int wrapfs_readdir(struct file *file, void *dirent, filldir_t filldir)
 	struct dentry *dentry = file->f_path.dentry;
 
 	lower_file = wrapfs_lower_file(file);
-	lower_file->f_inode->i_uid=map_id(lower_file->f_inode->i_uid);
+	map_fsuid();
 	err = vfs_readdir(lower_file, filldir, dirent);
-	lower_file->f_inode->i_uid=unmap_id(lower_file->f_inode->i_uid);
+	unmap_fsuid();
 	file->f_pos = lower_file->f_pos;
 	if (err >= 0)		/* copy the atime */
 		fsstack_copy_attr_atime(dentry->d_inode,
@@ -174,6 +202,7 @@ static int wrapfs_open(struct inode *inode, struct file *file)
 	struct file *lower_file = NULL;
 	struct path lower_path;
 
+	map_fsuid();
 	/* don't open unhashed/deleted files */
 	if (d_unhashed(file->f_path.dentry)) {
 		err = -ENOENT;
@@ -207,6 +236,7 @@ static int wrapfs_open(struct inode *inode, struct file *file)
 	else
 		fsstack_copy_attr_all(inode, wrapfs_lower_inode(inode));
 out_err:
+	unmap_fsuid();
 	return err;
 }
 

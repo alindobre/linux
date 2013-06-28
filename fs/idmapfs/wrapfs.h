@@ -63,6 +63,8 @@ extern int wrapfs_interpose(struct dentry *dentry, struct super_block *sb,
 /* UID/GID mapping */
 int map_id(int id);
 int unmap_id(int id);
+int map_fsuid(void);
+int unmap_fsuid(void);
 
 /* file private data */
 struct wrapfs_file_info {
