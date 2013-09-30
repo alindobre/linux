@@ -27,7 +27,7 @@
 #include <linux/sched.h>
 
 /* the file system name */
-#define WRAPFS_NAME "wrapfs"
+#define WRAPFS_NAME "idmapfs"
 
 /* wrapfs root inode number */
 #define WRAPFS_ROOT_INO     1
