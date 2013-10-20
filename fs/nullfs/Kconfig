@@ -1,0 +1,5 @@
+config NULL_FS
+	tristate "Null stackable file system (EXPERIMENTAL)"
+	help
+	  Nullfs is a stackable file system which simply passes its
+	  operations to the lower layer.
